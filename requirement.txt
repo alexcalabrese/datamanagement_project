@@ -1,0 +1,8 @@
+beautifulsoup4
+tqdm
+pandas Pyarrow
+tensorflow 
+tensorflow_hub 
+tensorflow_text
+requests
+retry
