@@ -142,8 +142,23 @@ class Open(Scraper):
         # substitute the tags array with the first element
         self.parsed_df.rename(columns={'tag': 'tags'}, inplace=True)
         
+        # Add the source site column
+        self.parsed_df['source_site'] = self.parsed_df['link'].apply(self.extract_source_site)
+        
         # Create a date object for January 2, 2024
         data = datetime(2024, 1, 2)
         
         self.parsed_df.apply(lambda x: data)
         return self.parsed_df
+    
+    # Function to extract the source site
+    def extract_source_site(self, link, domain_to_site_name={
+        'www.open.online': 'Open',
+        'www.ansa.it': 'Ansa',
+        'www.ilpost.it': 'Ilpost'
+    }) -> str:
+        """Extracts the source site from the link. """
+        for domain, Name in domain_to_site_name.items():
+            if domain in link:
+                return Name
+        return "-1"  # If none of the specified domains are found
