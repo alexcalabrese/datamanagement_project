@@ -2,6 +2,7 @@ import requests
 import time
 import os
 import urllib.parse
+from dotenv import load_dotenv
 
 
 class GroqChatClient:
@@ -12,6 +13,7 @@ class GroqChatClient:
         model="mixtral-8x7b-32768",
         sleep_time=5,
     ):
+        load_dotenv()
         self.api_key = api_key
         self.model = model
         self.base_url = "https://api.groq.com/openai/v1/chat/completions"

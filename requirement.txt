@@ -6,3 +6,4 @@ tensorflow_hub
 tensorflow_text
 requests
 retry
+python-dotenv
