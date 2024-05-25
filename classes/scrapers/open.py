@@ -9,44 +9,79 @@ from tqdm import tqdm
 import re
 from classes.scrapers.scraper import Scraper
 from datetime import datetime
+import time
 
 
 class Open(Scraper):
-    def __init__(self):
+    def __init__(self, skip_backup=False):
         super().__init__()
-        self.filename = 'open_parsed_df'
-        self.parsed_df = super().load_backup(self.filename)
-        
-    def scrape(self, url = "https://web.archive.org/web/20240102003612/https://www.open.online/"):
+        self.filename = "open_parsed_df"
+        self.parsed_df = super().load_backup(self.filename, skip=skip_backup)
+
+    def scrape(
+        self,
+        urls=[
+            "https://web.archive.org/web/20240102003612/https://www.open.online/",  # 2 Jan
+            "https://web.archive.org/web/20240109015349/https://www.open.online/",  # 9 Jan
+            "https://web.archive.org/web/20240115022729/https://www.open.online/",  # 15 Jan
+        ],
+    ):
         if not self.parsed_df.empty:
             return self.make_df_compatible()
-        
+
         parsed_articles = []
-        
-        # Scraping the homepage
-        news_data = self.scrape_news(url)
-        
-        try:
-            for news in tqdm(news_data, desc="Parsing articles"):
-                if self.parsed_df.empty:
-                    # Cache df is empty
-                    article_data = self.parse_article(self.remove_before_http(news['link']))
-                    if article_data:
-                        article_data['site'] = 'www.open.online'
-                        parsed_articles.append(article_data)
-                elif self.remove_before_http(news['link']) not in self.parsed_df['link'].values:
-                    # Not in cache
-                    article_data = self.parse_article(self.remove_before_http(news['link']))
-                    if article_data:
-                        article_data['site'] = 'www.open.online'
-                        parsed_articles.append(article_data)
-                else:
-                    print(f"[SKIP] Article already parsed: {self.remove_before_http(news['link'])}")
-                
-            return parsed_articles
-        except Exception as e:
-            print(f"An exception occurred: {str(e)}")
-        
+
+        print(f"Starting scraping...")
+
+        # Looping through provided urls
+        for url in urls:
+            # Scraping the homepage for each url
+            news_data = self.scrape_news(url)
+
+            try:
+                for news in tqdm(news_data, desc="Parsing articles"):
+                    if self.parsed_df.empty:
+                        # Cache df is empty
+                        article_data = self.parse_article(
+                            self.remove_before_http(news["link"])
+                        )
+                        if article_data:
+                            article_data["site"] = "www.open.online"
+                            parsed_articles.append(article_data)
+                    elif (
+                        self.remove_before_http(news["link"])
+                        not in self.parsed_df["link"].values
+                    ):
+                        # Not in cache
+                        article_data = self.parse_article(
+                            self.remove_before_http(news["link"])
+                        )
+                        if article_data:
+                            article_data["site"] = "www.open.online"
+                            parsed_articles.append(article_data)
+                    else:
+                        print(
+                            f"[SKIP] Article already parsed: {self.remove_before_http(news['link'])}"
+                        )
+
+            except Exception as e:
+                print(f"An exception occurred: {str(e)}")
+
+        data = {
+            "title": [article["title"] for article in parsed_articles],
+            "link": [article["link"] for article in parsed_articles],
+            # "domain": [article.domain for article in parsed_articles],
+            "date": [article["date"] for article in parsed_articles],
+            # "subtitle": [article.subtitle for article in parsed_articles],
+            "content": [article["content"] for article in parsed_articles],
+            "tags": [article["tag"] for article in parsed_articles],
+        }
+
+        self.parsed_df = pd.DataFrame(data)
+        return self.make_df_compatible()
+
+        return parsed_articles
+
     def scrape_news(self, url: str) -> List[Dict[str, Optional[str]]]:
         """
         Scrape news data from a given website.
@@ -57,11 +92,19 @@ class Open(Scraper):
         Returns:
         List[Dict[str, Optional[str]]]: A list of dictionaries containing the scraped news data.
         """
+        print(f"Fetching URL: {url}")
+
         response = requests.get(url)
 
+        print(f"Status code: {response.status_code}")
+
         if response.status_code != 200:
-            print(f"Failed to retrieve the webpage. Status code: {response.status_code}")
+            print(
+                f"Failed to retrieve the webpage. Status code: {response.status_code}"
+            )
             return []
+
+        time.sleep(2)
 
         soup = BeautifulSoup(response.content, "html.parser")
         news_inner_list = soup.find_all(class_="news__inner")
@@ -77,10 +120,12 @@ class Open(Scraper):
             author_element = news_inner.find(class_="news__author")
             author = author_element.text.strip() if author_element else None
 
-            link_element = news_inner.find(class_="news__title").find('a')
-            link = link_element['href'] if link_element else None
+            link_element = news_inner.find(class_="news__title").find("a")
+            link = link_element["href"] if link_element else None
 
-            news_data.append({'title': title, 'date': date, 'author': author, 'link': link})
+            news_data.append(
+                {"title": title, "date": date, "author": author, "link": link}
+            )
 
         return news_data
 
@@ -95,12 +140,15 @@ class Open(Scraper):
         Optional[Dict[str, Optional[str]]]: A dictionary containing the parsed article data, or None if the request was unsuccessful.
         """
         session = requests.Session()
-        retry = Retry(connect=3, backoff_factor=0.5)
+        retry = Retry(connect=10, backoff_factor=0.5)
         adapter = HTTPAdapter(max_retries=retry)
-        session.mount('http://', adapter)
-        session.mount('https://', adapter)
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
 
         response = session.get(link)
+
+        time.sleep(5)
+
         if response.status_code != 200:
             return None
 
@@ -117,47 +165,53 @@ class Open(Scraper):
         content_element = soup.find(class_="news__content")
         content = content_element.text.strip() if content_element else None
 
-        a_tag = soup.find('a', rel='category tag')
+        a_tag = soup.find("a", rel="category tag")
         tag = a_tag.text if a_tag else None
 
         article_data = {
-            'title': title,
-            'date': date,
-            'author': author,
-            'content': content,
-            'tag': tag,
-            'link': link
+            "title": title,
+            "date": date,
+            "author": author,
+            "content": content,
+            "tag": tag,
+            "link": link,
         }
 
         return article_data
 
     def remove_before_http(self, s):
-        match = re.search(r'https?://', s)
+        match = re.search(r"https?://", s)
         if match:
-            return s[match.start():]
+            return s[match.start() :]
         else:
             return s
-        
+
     def make_df_compatible(self):
         # substitute the tags array with the first element
-        self.parsed_df.rename(columns={'tag': 'tags'}, inplace=True)
-        
+        self.parsed_df.rename(columns={"tag": "tags"}, inplace=True)
+
         # Add the source site column
-        self.parsed_df['source_site'] = self.parsed_df['link'].apply(self.extract_source_site)
-        
+        self.parsed_df["source_site"] = self.parsed_df["link"].apply(
+            self.extract_source_site
+        )
+
         # Create a date object for January 2, 2024
-        data = datetime(2024, 1, 2)
-        
-        self.parsed_df.apply(lambda x: data)
+        # data = datetime(2024, 1, 2)
+
+        # self.parsed_df.apply(lambda x: data)
         return self.parsed_df
-    
+
     # Function to extract the source site
-    def extract_source_site(self, link, domain_to_site_name={
-        'www.open.online': 'Open',
-        'www.ansa.it': 'Ansa',
-        'www.ilpost.it': 'Ilpost'
-    }) -> str:
-        """Extracts the source site from the link. """
+    def extract_source_site(
+        self,
+        link,
+        domain_to_site_name={
+            "www.open.online": "Open",
+            "www.ansa.it": "Ansa",
+            "www.ilpost.it": "Ilpost",
+        },
+    ) -> str:
+        """Extracts the source site from the link."""
         for domain, Name in domain_to_site_name.items():
             if domain in link:
                 return Name

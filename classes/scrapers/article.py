@@ -6,6 +6,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import pandas as pd
 
+
 class Article:
     def __init__(self, title, link, domain):
         self.title = title
@@ -26,36 +27,39 @@ class Article:
         self.extract_date()
         self.extract_content()
 
-    def setup_session(self, connect=3, backoff_factor=0.5):
+    def setup_session(self, connect=10, backoff_factor=0.5):
         self.session = requests.Session()
         retry = Retry(connect=connect, backoff_factor=backoff_factor)
         adapter = HTTPAdapter(max_retries=retry)
-        self.session.mount('http://', adapter)
-        self.session.mount('https://', adapter)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
 
     def extract_content(self):
         if self.domain == "www.ilpost.it":
             response = self.session.get(self.link)
-            soup = BeautifulSoup(response.content, 'html.parser')
+            soup = BeautifulSoup(response.content, "html.parser")
 
             # Extract title
-            title = soup.find('h1').text
+            title = soup.find("h1").text
             self.title = title
 
             # Extract subtitle
-            subtitle = soup.find('h2').text
+            subtitle = soup.find("h2").text
             self.subtitle = subtitle
 
             # Extract article content
-            article_content = soup.find('div', {'id': 'singleBody'}).get_text(strip=True)
+            article_content = soup.find("div", {"id": "singleBody"}).get_text(
+                strip=True
+            )
             self.content = article_content
 
             # Extract tags
-            tags_div = soup.find('div', {'class': 'index_art_tag__pP6B_'})
-            tags = [a.text for a in tags_div.find_all('a')]
+            tags_div = soup.find("div", {"class": "index_art_tag__pP6B_"})
+            tags = [a.text for a in tags_div.find_all("a")]
             self.tags = tags
+            # print(f"Title: {self.title}")
 
-            print(f"- Title: {self.title}\nLink: {self.link}\nDomain: {self.domain}\nDate: {self.date}\nSubtitle: {self.subtitle}\nContent: {self.content}\nTags: {self.tags}")
+            # print(f"- Title: {self.title}\nLink: {self.link}\nDomain: {self.domain}\nDate: {self.date}\nSubtitle: {self.subtitle}\nContent: {self.content}\nTags: {self.tags}")
 
             time.sleep(1)
         if self.domain == "www.ansa.it":
@@ -78,15 +82,15 @@ class Article:
             content = content_element.text.strip() if content_element else None
             self.content = content
 
-            a_tag = soup.find( class_='is-section')
-            tag = a_tag.text.replace('\n', '').strip() if a_tag else None
-            print(tag)
+            a_tag = soup.find(class_="is-section")
+            tag = a_tag.text.replace("\n", "").strip() if a_tag else None
+            # print(tag)
             self.tags = tag
 
     def extract_date(self):
         if self.domain != "www.ansa.it":
-        # extract date from the link: https://web.archive.org/web/20240102004317/https://www.ilpost.it/2024/01/01/fine-reddito-di-cittadinanza/
-            date = self.link.split('/')[4]
+            # extract date from the link: https://web.archive.org/web/20240102004317/https://www.ilpost.it/2024/01/01/fine-reddito-di-cittadinanza/
+            date = self.link.split("/")[4]
             self.date = date
 
     def __str__(self):
