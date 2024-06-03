@@ -3,6 +3,8 @@ import time
 import os
 import urllib.parse
 from dotenv import load_dotenv
+import backoff
+import requests
 
 
 class GroqChatClient:
@@ -75,9 +77,15 @@ class GroqChatClient:
             print(f"Error sending chat message: {e}")
 
             if e.response.status_code == 429:
-                print("Rate limit exceeded. Waiting for 1 minutes...")
-                time.sleep(60)
-                return self.send_chat_message(content, stop_if_error)
+                print("Rate limit exceeded. Waiting for exponential backoff minutes...")
+
+                # Applying exponential backoff with a maximum of 5 retries
+                @backoff.on_exception(
+                    backoff.expo, requests.exceptions.HTTPError, max_tries=10
+                )
+                def retry_send_chat_message():
+                    # time.sleep(60)
+                    return self.send_chat_message(content, stop_if_error)
 
             if stop_if_error:
                 return ""
