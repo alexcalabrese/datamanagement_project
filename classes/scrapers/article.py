@@ -8,11 +8,11 @@ import pandas as pd
 
 
 class Article:
-    def __init__(self, title, link, domain):
+    def __init__(self, title, link, domain, date):
         self.title = title
         self.link = link
         self.domain = domain
-        self.date = None
+        self.date = date
 
         # Content
         self.title = None
@@ -70,9 +70,9 @@ class Article:
             title = title_element.text.strip() if title_element else None
             self.title = title
 
-            date_element = soup.find(class_="details")
-            date = date_element.text.strip() if date_element else None
-            self.date = date
+            # date_element = soup.find(class_="details")
+            # date = date_element.text.strip() if date_element else None
+            # self.date = date
 
             author_element = soup.find(class_="author")
             author = author_element.text.strip() if author_element else None

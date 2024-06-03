@@ -44,6 +44,8 @@ class Ansa(Scraper):
         # Call get_homepage_html with the list of urls
         responses = self.get_homepage_html(urls)
 
+        dates = [datetime(2024, 1, 2), datetime(2024, 1, 9), datetime(2024, 1, 15)]
+
         # List to store parsed articles
         parsed_articles = []
 
@@ -53,6 +55,8 @@ class Ansa(Scraper):
                     f"Processing URL: {urls[idx]} (Status Code: {response.status_code})"
                 )
                 soup = BeautifulSoup(response.content, "html.parser")
+
+                date = dates[idx]
 
                 articles = soup.find_all(class_="title")
 
@@ -76,10 +80,10 @@ class Ansa(Scraper):
                     link = self.remove_before_ansa_link(link)
 
                     if self.parsed_df.empty:
-                        parsed_article = Article(title, link, "www.ansa.it")
+                        parsed_article = Article(title, link, "www.ansa.it", date)
                         parsed_articles.append(parsed_article)
                     elif link not in self.parsed_df["link"].values:
-                        parsed_article = Article(title, link, "www.ansa.it")
+                        parsed_article = Article(title, link, "www.ansa.it", date)
                         parsed_articles.append(parsed_article)
                     else:
                         print(f"[SKIP] Article already parsed: {link}")
@@ -102,8 +106,8 @@ class Ansa(Scraper):
 
         self.parsed_df = pd.DataFrame(data)
 
-        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        self.parsed_df.to_pickle(f"{self.filename}-{timestamp}.pkl")
+        # timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        # self.parsed_df.to_pickle(f"{self.filename}-{timestamp}.pkl")
         return self.make_df_compatible()
 
     def get_homepage_html(
@@ -173,9 +177,9 @@ class Ansa(Scraper):
         )
 
         # Create a date object for January 2, 2024
-        data = datetime(2024, 1, 2)
+        # data = datetime(2024, 1, 2)
 
-        self.parsed_df.apply(lambda x: data)
+        # self.parsed_df.apply(lambda x: data)
         return self.parsed_df
 
     # Function to extract the source site

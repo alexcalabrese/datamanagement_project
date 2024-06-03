@@ -43,6 +43,8 @@ class Ilpost(Scraper):
         # Call get_homepage_html with the list of urls
         responses = self.get_homepage_html(urls)
 
+        dates = [datetime(2024, 1, 2), datetime(2024, 1, 9), datetime(2024, 1, 15)]
+
         # List to store parsed articles
         parsed_articles = []
 
@@ -57,6 +59,8 @@ class Ilpost(Scraper):
                     "article", {"class": "_taxonomy-item_q6jgq_1 _opener_q6jgq_14"}
                 )
 
+                date = dates[idx]
+
                 print(f"Found {len(articles)} articles on {urls[idx]}")
 
             try:
@@ -67,10 +71,10 @@ class Ilpost(Scraper):
                     link = article.find("a")["href"]
 
                     if self.parsed_df.empty:
-                        parsed_article = Article(title, link, "www.ilpost.it")
+                        parsed_article = Article(title, link, "www.ilpost.it", date)
                         parsed_articles.append(parsed_article)
                     elif link not in self.parsed_df["link"].values:
-                        parsed_article = Article(title, link, "www.ilpost.it")
+                        parsed_article = Article(title, link, "www.ilpost.it", date)
                         parsed_articles.append(parsed_article)
                     else:
                         print(f"[SKIP] Article already parsed: {link}")

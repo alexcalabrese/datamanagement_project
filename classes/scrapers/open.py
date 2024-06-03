@@ -31,12 +31,16 @@ class Open(Scraper):
 
         parsed_articles = []
 
+        dates = [datetime(2024, 1, 2), datetime(2024, 1, 9), datetime(2024, 1, 15)]
+
         print(f"Starting scraping...")
 
         # Looping through provided urls
         for url in urls:
             # Scraping the homepage for each url
             news_data = self.scrape_news(url)
+
+            date = dates[urls.index(url)]
 
             try:
                 for news in tqdm(news_data, desc="Parsing articles"):
@@ -47,6 +51,7 @@ class Open(Scraper):
                         )
                         if article_data:
                             article_data["site"] = "www.open.online"
+                            article_data["date"] = date
                             parsed_articles.append(article_data)
                     elif (
                         self.remove_before_http(news["link"])
@@ -58,6 +63,7 @@ class Open(Scraper):
                         )
                         if article_data:
                             article_data["site"] = "www.open.online"
+                            article_data["date"] = date
                             parsed_articles.append(article_data)
                     else:
                         print(
@@ -79,8 +85,6 @@ class Open(Scraper):
 
         self.parsed_df = pd.DataFrame(data)
         return self.make_df_compatible()
-
-        return parsed_articles
 
     def scrape_news(self, url: str) -> List[Dict[str, Optional[str]]]:
         """
