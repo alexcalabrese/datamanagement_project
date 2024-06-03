@@ -1,3 +1,4 @@
+import pickle
 from tqdm import tqdm
 from classes.llm.groq import GroqChatClient
 from classes.embeddings.utils import TextEmbeddings
@@ -25,7 +26,8 @@ class ClusteringProcessor:
 
         """
         self.df = df
-        self.summarize_clusters = {}
+        self.backup_filename = "3_days_mixtral_summarize_clusters_dict"
+        self.summarize_clusters = self.load_integrated_summarize_clusters_dict_backup()
         self.groq_client = GroqChatClient()
         self.text_embeddings = text_embeddings
         self.filename = "mixtral_integrated_df"
@@ -55,6 +57,8 @@ class ClusteringProcessor:
             date, tags, cluster, summary
         )
 
+        # self.save_integrated_summarize_clusters_dict_backup()
+
     def build_cluster_summary(self, cluster):
         """
         Build a summary for a cluster.
@@ -70,7 +74,7 @@ class ClusteringProcessor:
         for news in cluster:
             title = self.df[["title"]].iloc[news, 0]
             content = self.df[["content"]].iloc[news, 0]
-            tqdm.write(f"Title: {title}")
+            # tqdm.write(f"Title: {title}")
             summary_text += f"Title: {title} \n Content: {content}\n"
         if title is None or content is None:
             tqdm.write("[SKIP] Skipping NONE title or content")
@@ -95,27 +99,27 @@ class ClusteringProcessor:
         output_json = self.groq_client.send_chat_message(summarize_prompt)
         summary = output_json if output_json else "Error: LLM call failed"
 
-        if summary == "Error: LLM call failed":
-            summary = "Harmful content found in the news"
-            return summary, [0 for _ in range(len(cluster))]
-        else:
-            similarity_from_source = [
-                (
-                    self.text_embeddings.similarity_text(
-                        summary,
-                        ""
-                        + self.df[["title"]].iloc[news, 0]
-                        + " "
-                        + self.df[["content"]].iloc[news, 0],
-                    )
-                    if self.df[["title"]].iloc[news, 0]
-                    and self.df[["content"]].iloc[news, 0]
-                    else None
+        # if summary == "Error: LLM call failed":
+        #     summary = "Harmful content found in the news"
+        #     return summary, [0 for _ in range(len(cluster))]
+        # else:
+        similarity_from_source = [
+            (
+                self.text_embeddings.similarity_text(
+                    summary,
+                    ""
+                    + self.df[["title"]].iloc[news, 0]
+                    + " "
+                    + self.df[["content"]].iloc[news, 0],
                 )
-                for news in cluster
-            ]
-            toxicity_analisys = Detoxify("multilingual").predict(summary)
-            return summary, similarity_from_source, toxicity_analisys
+                if self.df[["title"]].iloc[news, 0]
+                and self.df[["content"]].iloc[news, 0]
+                else None
+            )
+            for news in cluster
+        ]
+        toxicity_analisys = Detoxify("multilingual").predict(summary)
+        return summarize_prompt, summary, similarity_from_source, toxicity_analisys
 
     def create_cluster_data(self, date, tags, cluster, summary):
         """
@@ -131,14 +135,14 @@ class ClusteringProcessor:
             dict: The cluster data dictionary.
 
         """
-        (summary, similarity, toxicity_analysis) = summary
+        (summarize_prompt, summary, similarity, toxicity_analysis) = summary
 
         return {
             "date": date,
             "tags": tags,
             "sources": cluster,
             "similarity": similarity,
-            "question": summary,
+            "question": summarize_prompt,
             "answer": summary,
             "toxicity": toxicity_analysis["toxicity"],
             "severe_toxicity": toxicity_analysis["severe_toxicity"],
@@ -178,5 +182,47 @@ class ClusteringProcessor:
                 print("[WARNING] Pickle file not found")
                 integrated_df = pd.DataFrame()
                 return integrated_df
+        except Exception as e:
+            print(f"An exception occurred: {str(e)}")
+
+    def save_integrated_summarize_clusters_dict_backup(
+        self,
+    ):
+        try:
+            print(f"Saving backup: {self.backup_filename}")
+            pickle_file = os.path.join(
+                os.getcwd(), "backups", "multiple_days", f"{self.backup_filename}.pkl"
+            )
+
+            print(f"Saving backup in: {pickle_file}")
+
+            with open(pickle_file, "wb") as f:
+                pickle.dump(self.summarize_clusters, f)
+
+            print(f"Backup saved: {self.backup_filename}")
+        except Exception as e:
+            print(f"An exception occurred: {str(e)}")
+
+    def load_integrated_summarize_clusters_dict_backup(self):
+        try:
+            print(f"Loading backup: {self.backup_filename}")
+            pickle_file = os.path.join(
+                os.getcwd(), "backups", "multiple_days", f"{self.backup_filename}.pkl"
+            )
+
+            print(f"Searching backup in: {pickle_file}")
+            print(f"Backup is existing: {os.path.exists(pickle_file)}")
+
+            if os.path.exists(pickle_file):
+                print(f"Backup found: {self.backup_filename}")
+                with open(pickle_file, "rb") as f:
+                    summarize_clusters = pickle.load(f)
+
+                print(f"Backup loaded: {self.backup_filename}")
+                return summarize_clusters
+            else:
+                print("[WARNING] Pickle file not found")
+                summarize_clusters = {}
+                return summarize_clusters
         except Exception as e:
             print(f"An exception occurred: {str(e)}")
