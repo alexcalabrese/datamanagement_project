@@ -8,3 +8,4 @@ requests
 retry
 python-dotenv
 detoxify
+pymongo[srv]
