@@ -14,3 +14,7 @@ retry
 python-dotenv
 detoxify
 pymongo[srv]
+
+# multilingual dataset
+
+deep_translator
