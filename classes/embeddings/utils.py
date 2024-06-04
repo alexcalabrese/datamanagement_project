@@ -10,6 +10,10 @@ from typing import List, Dict
 import sklearn.metrics as sk_metrics
 import sklearn.metrics.pairwise as sk_pairwise
 
+import os
+
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "1"
+
 
 class TextEmbeddings:
     def __init__(self):
@@ -64,7 +68,7 @@ class TextEmbeddings:
             np.ndarray: The similarity matrix for the list of texts.
         """
         # Compute the embeddings of the texts
-        embeddings = self.embed_text(text_list)
+        embeddings = self.embed_text([text for text in text_list if text is not None])
         # Compute the similarity matrix
         return np.inner(embeddings, embeddings)
 

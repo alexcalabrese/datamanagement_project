@@ -14,7 +14,7 @@ import time
 class Ilpost(Scraper):
     def __init__(self, skip_backup=False):
         super().__init__()
-        self.filename = "ilpost_parsed_df"
+        self.filename = "3_days_ilpost_parsed_df"
         self.parsed_df = super().load_backup(self.filename, skip=skip_backup)
         self.homepage_html = None
 

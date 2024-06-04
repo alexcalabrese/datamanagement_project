@@ -22,7 +22,9 @@ class Scraper:
                 print(f"Loading backup: {filename}")
 
             # load pickle file in the backups folder
-            pickle_file = os.path.join(os.getcwd(), "backups", f"{filename}.pkl")
+            pickle_file = os.path.join(
+                os.getcwd(), "backups", "news", f"{filename}.pkl"
+            )
 
             if self.verbose:
                 print(f"Searching backup in: {pickle_file}")

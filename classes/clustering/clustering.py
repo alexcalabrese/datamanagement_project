@@ -191,7 +191,7 @@ class ClusteringProcessor:
         try:
             print(f"Saving backup: {self.backup_filename}")
             pickle_file = os.path.join(
-                os.getcwd(), "backups", "multiple_days", f"{self.backup_filename}.pkl"
+                os.getcwd(), "backups", "news", f"{self.backup_filename}.pkl"
             )
 
             print(f"Saving backup in: {pickle_file}")
@@ -207,7 +207,7 @@ class ClusteringProcessor:
         try:
             print(f"Loading backup: {self.backup_filename}")
             pickle_file = os.path.join(
-                os.getcwd(), "backups", "multiple_days", f"{self.backup_filename}.pkl"
+                os.getcwd(), "backups", "news", f"{self.backup_filename}.pkl"
             )
 
             print(f"Searching backup in: {pickle_file}")

@@ -1,6 +1,11 @@
 beautifulsoup4
 tqdm
-pandas Pyarrow
+ipykernel
+backoff
+scikit-learn
+pandas
+# tensorflow-gpu==2.8.0
+Pyarrow
 tensorflow 
 tensorflow_hub 
 tensorflow_text
